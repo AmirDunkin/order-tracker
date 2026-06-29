@@ -5,7 +5,7 @@
     "buildCommand": ""
   },
   "deploy": {
-    "startCommand": "php -S 0.0.0.0:$PORT -t public",
+    "startCommand": "/nix/var/nix/profiles/default/bin/php -S 0.0.0.0:$PORT -t public",
     "restartPolicyType": "ON_FAILURE"
   }
 }
