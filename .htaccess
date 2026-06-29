@@ -1,0 +1,16 @@
+# OrderTrack — root .htaccess
+# Used when document root points to the project folder (not recommended for production).
+# Prefer pointing the subdomain document root to /public instead.
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Forward all requests to the public front controller
+    RewriteRule ^$ public/ [L]
+    RewriteRule ^((?!public/).*)$ public/$1 [L]
+</IfModule>
+
+# Block web access to sensitive folders (when doc root is project root)
+RedirectMatch 403 (?i)/(app|config|core|database|scripts)(/|$)
+
+Options -Indexes

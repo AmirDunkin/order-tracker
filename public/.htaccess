@@ -1,0 +1,53 @@
+# OrderTrack — public document root .htaccess
+# For cPanel: set subdomain document root to this /public folder.
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Uncomment on production to force HTTPS:
+    # RewriteCond %{HTTPS} off
+    # RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # If installed in a subdirectory, uncomment and set the path:
+    # RewriteBase /order-tracker/public/
+
+    # Serve existing files and directories directly
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+
+    # Route everything else to the front controller
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>
+
+# Disable directory listing
+Options -Indexes
+
+# PHP 8.x (cPanel — adjust path if needed)
+<IfModule mime_module>
+    AddHandler application/x-httpd-ea-php82 .php
+</IfModule>
+
+# Environment variables for production (uncomment and edit for cPanel)
+# <IfModule mod_env.c>
+#     SetEnv APP_ENV production
+#     SetEnv APP_URL https://order-tracker.yourdomain.com
+#     SetEnv DB_HOST localhost
+#     SetEnv DB_DATABASE yourcpanel_order_tracker
+#     SetEnv DB_USERNAME yourcpanel_dbuser
+#     SetEnv DB_PASSWORD your_secure_password
+# </IfModule>
+
+# Security headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Block access to hidden files
+<FilesMatch "^\.">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+</FilesMatch>

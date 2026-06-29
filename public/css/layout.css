@@ -1,0 +1,297 @@
+/* ── OrderTrack design tokens ───────────────────────────────── */
+:root {
+    --yp-navy: #1a1f36;
+    --yp-navy-light: #252b48;
+    --yp-navy-dark: #12162a;
+    --yp-accent: #4f46e5;
+    --yp-accent-hover: #4338ca;
+    --yp-accent-light: #eef2ff;
+    --yp-success: #198754;
+    --yp-bg: #f4f6f9;
+    --yp-surface: #ffffff;
+    --yp-border: #e5e7eb;
+    --yp-text: #111827;
+    --yp-text-muted: #6b7280;
+    --sidebar-width: 260px;
+    --topbar-height: 64px;
+    --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* ── App shell ──────────────────────────────────────────────── */
+body.app-body {
+    margin: 0;
+    font-family: var(--font-family);
+    background: var(--yp-bg);
+    color: var(--yp-text);
+}
+
+.app-shell {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* ── Sidebar (desktop) ────────────────────────────────────── */
+.app-sidebar {
+    width: var(--sidebar-width);
+    flex-shrink: 0;
+    background: var(--yp-navy);
+    color: #fff;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+.app-sidebar-offcanvas {
+    background: var(--yp-navy) !important;
+    width: var(--sidebar-width) !important;
+}
+
+.sidebar-brand-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: #fff;
+}
+
+.sidebar-brand-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+}
+
+.sidebar-app-name {
+    font-weight: 700;
+    font-size: 1.05rem;
+}
+
+.sidebar-role-badge {
+    background: rgba(79, 70, 229, 0.25) !important;
+    color: #c7d2fe !important;
+    font-weight: 500;
+    font-size: 0.75rem;
+}
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: rgba(255, 255, 255, 0.7) !important;
+    border-radius: 8px;
+    padding: 0.65rem 0.85rem !important;
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: background 0.15s, color 0.15s;
+}
+
+.sidebar-link:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff !important;
+}
+
+.sidebar-link.active {
+    background: var(--yp-accent);
+    color: #fff !important;
+}
+
+.sidebar-link-icon {
+    font-size: 1.1rem;
+    width: 1.25rem;
+    text-align: center;
+}
+
+.sidebar-footer {
+    margin-top: auto;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ── Content area ───────────────────────────────────────────── */
+.app-content-wrapper {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.app-topbar {
+    height: var(--topbar-height);
+    background: var(--yp-surface);
+    border-bottom: 1px solid var(--yp-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.25rem;
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+}
+
+.app-menu-btn {
+    text-decoration: none !important;
+}
+
+.app-topbar-brand {
+    display: flex;
+    align-items: center;
+}
+
+.app-page-title {
+    color: var(--yp-navy);
+    font-weight: 600;
+}
+
+.btn-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.notification-badge {
+    font-size: 0.6rem;
+    padding: 0.2em 0.45em;
+}
+
+.user-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--yp-accent);
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.app-main {
+    flex: 1;
+    padding: 1.5rem 1.25rem;
+}
+
+.app-footer {
+    padding: 1rem 1.25rem;
+    border-top: 1px solid var(--yp-border);
+    background: var(--yp-surface);
+}
+
+/* ── Bootstrap overrides ──────────────────────────────────────── */
+.btn-primary {
+    --bs-btn-bg: var(--yp-accent);
+    --bs-btn-border-color: var(--yp-accent);
+    --bs-btn-hover-bg: var(--yp-accent-hover);
+    --bs-btn-hover-border-color: var(--yp-accent-hover);
+    --bs-btn-active-bg: var(--yp-accent-hover);
+    --bs-btn-active-border-color: var(--yp-accent-hover);
+}
+
+.btn-outline-primary {
+    --bs-btn-color: var(--yp-accent);
+    --bs-btn-border-color: var(--yp-accent);
+    --bs-btn-hover-bg: var(--yp-accent);
+    --bs-btn-hover-border-color: var(--yp-accent);
+}
+
+.text-primary {
+    color: var(--yp-accent) !important;
+}
+
+.bg-primary {
+    background-color: var(--yp-accent) !important;
+}
+
+.form-check-input:checked {
+    background-color: var(--yp-accent);
+    border-color: var(--yp-accent);
+}
+
+.page-item.active .page-link {
+    background-color: var(--yp-accent);
+    border-color: var(--yp-accent);
+}
+
+/* ── AJAX toast ─────────────────────────────────────────────── */
+#ajax-toast-container .toast {
+    min-width: 280px;
+    font-family: var(--font-family);
+}
+
+#ajax-toast-container .toast-body {
+    font-size: 0.9rem;
+}
+
+/* ── Status help (badges, notices, legend) ──────────────────── */
+.status-badge {
+    cursor: help;
+}
+
+.status-notice {
+    border: none;
+    font-size: 0.9rem;
+}
+
+.status-notice strong {
+    font-size: 0.95rem;
+}
+
+.status-legend summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--yp-text);
+    list-style: none;
+}
+
+.status-legend summary::-webkit-details-marker {
+    display: none;
+}
+
+.status-legend summary::after {
+    content: 'Show';
+    float: right;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--yp-accent);
+}
+
+.status-legend[open] summary::after {
+    content: 'Hide';
+}
+
+.status-legend-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+}
+
+.status-legend-item {
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--yp-border);
+    border-radius: 10px;
+    background: #fafbfc;
+}
+
+.status-action-hint {
+    padding: 0.65rem 0.75rem;
+    border-radius: 8px;
+    background: var(--yp-accent-light);
+    color: #3730a3;
+}
+
+/* ── Responsive ───────────────────────────────────────────────── */
+@media (max-width: 991.98px) {
+    .app-main {
+        padding: 1.25rem 1rem;
+    }
+}
+
+@media (min-width: 992px) {
+    .app-main {
+        padding: 1.75rem 2rem;
+    }
+}

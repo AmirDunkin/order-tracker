@@ -1,0 +1,60 @@
+/* Order Tracker - Application styles */
+
+.timeline {
+    position: relative;
+    padding-left: 0.5rem;
+}
+
+.timeline-item {
+    position: relative;
+    padding-left: 1.75rem;
+}
+
+.timeline-item:not(.timeline-item-last) .timeline-content {
+    border-left: 2px solid #dee2e6;
+    margin-left: 0.35rem;
+    padding-left: 1.25rem;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: 0;
+    top: 0.25rem;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px #dee2e6;
+    z-index: 1;
+}
+
+.timeline-item-last .timeline-content {
+    padding-bottom: 0 !important;
+}
+
+.stat-card .stat-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+}
+
+.stat-card .stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #1a1f36;
+}
+
+.stat-card .stat-label {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.sort-link:hover {
+    color: #1a1f36 !important;
+}
