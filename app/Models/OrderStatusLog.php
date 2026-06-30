@@ -4,10 +4,21 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Services\NotificationService;
 use Core\Model;
 
 class OrderStatusLog extends Model
 {
+    /** @var array<string, mixed>|null */
+    private static ?array $notificationConfig = null;
+
+    /**
+     * @param array<string, mixed> $config
+     */
+    public static function setNotificationConfig(array $config): void
+    {
+        self::$notificationConfig = $config;
+    }
     /**
      * @return array<string, mixed>|false
      */
@@ -107,6 +118,15 @@ class OrderStatusLog extends Model
             ]);
 
             $this->db->commit();
+
+            if (self::$notificationConfig !== null) {
+                try {
+                    $notifier = new NotificationService(self::$notificationConfig);
+                    $notifier->orderStatusChanged($orderId, $newStatus, $note);
+                } catch (\Throwable) {
+                    // Do not fail the status update if email fails
+                }
+            }
 
             return true;
         } catch (\Throwable) {

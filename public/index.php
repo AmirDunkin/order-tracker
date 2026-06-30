@@ -32,6 +32,8 @@ spl_autoload_register(static function (string $class): void {
 
 \Core\Database::connect($dbConfig);
 
+\App\Models\OrderStatusLog::setNotificationConfig($config);
+
 $router = new \Core\Router($config);
 
 require BASE_PATH . '/config/routes.php';

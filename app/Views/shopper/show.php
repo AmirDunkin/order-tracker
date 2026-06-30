@@ -51,24 +51,71 @@ $badgePartial = __DIR__ . '/../customer/partials/status_badge.php';
                 <?php endif; ?>
 
                 <h6 class="fw-semibold mb-2">Items</h6>
-                <div class="table-responsive">
-                    <table class="table table-sm mb-3">
-                        <thead>
-                            <tr>
-                                <th>Item</th>
-                                <th class="text-end">Qty</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($order['items'] as $item): ?>
-                                <tr>
-                                    <td><?= htmlspecialchars($item['name'] ?? '') ?></td>
-                                    <td class="text-end"><?= (int) ($item['qty'] ?? 0) ?></td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
+                <?php if (!empty($itemsEditable)): ?>
+                    <form id="shopper-items-form"
+                          data-url="<?= $baseUrl ?>/shopper/orders/<?= (int) $order['id'] ?>/items"
+                          class="mb-3">
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th class="text-end">Qty</th>
+                                        <th>Unit</th>
+                                        <th>Substitute</th>
+                                        <th>Status</th>
+                                        <th>Note</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($order['items'] as $index => $item): ?>
+                                        <?php $itemStatus = (string) ($item['item_status'] ?? 'pending'); ?>
+                                        <tr>
+                                            <td><?= htmlspecialchars($item['name'] ?? '') ?></td>
+                                            <td class="text-end"><?= (int) ($item['qty'] ?? 0) ?></td>
+                                            <td><?= htmlspecialchars($item['unit'] ?? 'pcs') ?></td>
+                                            <td>
+                                                <?php if (!empty($item['substitute_ok'])): ?>
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle">OK</span>
+                                                <?php else: ?>
+                                                    <span class="text-muted small">No</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <select class="form-select form-select-sm" name="item_status[<?= (int) $index ?>]">
+                                                    <?php foreach (Order::allItemStatuses() as $statusOption): ?>
+                                                        <option value="<?= htmlspecialchars($statusOption) ?>" <?= $itemStatus === $statusOption ? 'selected' : '' ?>>
+                                                            <?= htmlspecialchars(Order::itemStatusLabel($statusOption)) ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <input
+                                                    type="text"
+                                                    class="form-control form-control-sm"
+                                                    name="shopper_note[<?= (int) $index ?>]"
+                                                    placeholder="e.g. Anchor brand used"
+                                                    value="<?= htmlspecialchars($item['shopper_note'] ?? '') ?>"
+                                                >
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        <button type="submit" class="btn btn-outline-primary btn-sm" id="shopper-items-submit">
+                            <span class="submit-text">Save Item Updates</span>
+                            <span class="spinner-border spinner-border-sm d-none ms-1" id="shopper-items-spinner" role="status"></span>
+                        </button>
+                    </form>
+                <?php else: ?>
+                    <?php
+                    $items = $order['items'];
+                    $showShopperNotes = in_array($order['status'], ['delivered', 'cancelled'], true);
+                    require __DIR__ . '/../customer/partials/order_items_table.php';
+                    ?>
+                <?php endif; ?>
 
                 <h6 class="fw-semibold mb-1">Delivery Address</h6>
                 <p class="text-muted mb-3"><?= nl2br(htmlspecialchars($order['delivery_address'])) ?></p>

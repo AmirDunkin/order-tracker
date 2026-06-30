@@ -14,10 +14,16 @@ $baseUrl = rtrim($config['app']['url'] ?? '', '/');
         <h1 class="h3 mb-1"><?= htmlspecialchars($order['title']) ?></h1>
         <p class="text-muted mb-0"><?= htmlspecialchars($order['order_number']) ?></p>
     </div>
-    <div class="d-flex gap-2 align-items-center">
+    <div class="d-flex flex-wrap gap-2 align-items-center">
         <?php $status = $order['status']; require __DIR__ . '/partials/status_badge.php'; ?>
         <?php if ($order['priority'] === 'urgent'): ?>
             <span class="badge bg-danger">Urgent</span>
+        <?php endif; ?>
+        <?php if ($order['status'] === 'pending'): ?>
+            <a href="<?= $baseUrl ?>/customer/orders/<?= (int) $order['id'] ?>/edit" class="btn btn-sm btn-outline-primary">Edit Order</a>
+            <form method="POST" action="<?= $baseUrl ?>/customer/orders/<?= (int) $order['id'] ?>/cancel" class="d-inline" onsubmit="return confirm('Cancel this order? This cannot be undone.');">
+                <button type="submit" class="btn btn-sm btn-outline-danger">Cancel Order</button>
+            </form>
         <?php endif; ?>
     </div>
 </div>
@@ -34,24 +40,11 @@ $baseUrl = rtrim($config['app']['url'] ?? '', '/');
                 <?php endif; ?>
 
                 <h6 class="fw-semibold mb-2">Items</h6>
-                <div class="table-responsive">
-                    <table class="table table-sm mb-3">
-                        <thead>
-                            <tr>
-                                <th>Item</th>
-                                <th class="text-end">Qty</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($order['items'] as $item): ?>
-                                <tr>
-                                    <td><?= htmlspecialchars($item['name'] ?? '') ?></td>
-                                    <td class="text-end"><?= (int) ($item['qty'] ?? 0) ?></td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
+                <?php
+                $items = $order['items'];
+                $showShopperNotes = in_array($order['status'], ['confirmed', 'shopping', 'ready', 'delivered'], true);
+                require __DIR__ . '/partials/order_items_table.php';
+                ?>
 
                 <h6 class="fw-semibold mb-1">Delivery Address</h6>
                 <p class="text-muted mb-3"><?= nl2br(htmlspecialchars($order['delivery_address'])) ?></p>

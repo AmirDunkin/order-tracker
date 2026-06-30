@@ -52,37 +52,10 @@ class CustomerController extends Controller
         $this->requireRole('customer');
 
         $user = $this->user();
-        $title            = trim((string) ($_POST['title'] ?? ''));
-        $description      = trim((string) ($_POST['description'] ?? ''));
-        $deliveryAddress  = trim((string) ($_POST['delivery_address'] ?? ''));
-        $priority         = (string) ($_POST['priority'] ?? 'normal');
-        $notes            = trim((string) ($_POST['notes'] ?? ''));
-        $itemNames        = $_POST['item_name'] ?? [];
-        $itemQtys         = $_POST['item_qty'] ?? [];
+        $input = $this->orderInputFromPost();
+        $_SESSION['old_order'] = $input;
 
-        $_SESSION['old_order'] = [
-            'title'            => $title,
-            'description'      => $description,
-            'delivery_address' => $deliveryAddress,
-            'priority'         => $priority,
-            'notes'            => $notes,
-            'items'            => $this->buildItemsFromPost($itemNames, $itemQtys),
-        ];
-
-        if ($title === '' || $deliveryAddress === '') {
-            $this->setFlash('error', 'Title and delivery address are required.');
-            $this->redirect('/customer/orders/create');
-        }
-
-        if (!in_array($priority, ['normal', 'urgent'], true)) {
-            $this->setFlash('error', 'Invalid priority selected.');
-            $this->redirect('/customer/orders/create');
-        }
-
-        $items = $this->buildItemsFromPost($itemNames, $itemQtys);
-
-        if ($items === []) {
-            $this->setFlash('error', 'Please add at least one item.');
+        if (!$this->validateOrderInput($input)) {
             $this->redirect('/customer/orders/create');
         }
 
@@ -92,22 +65,22 @@ class CustomerController extends Controller
         $orderId = $orderModel->create([
             'order_number'     => $orderNumber,
             'customer_id'      => $user['id'],
-            'title'            => $title,
-            'description'      => $description !== '' ? $description : null,
-            'items'            => $items,
-            'priority'         => $priority,
-            'delivery_address' => $deliveryAddress,
-            'notes'            => $notes !== '' ? $notes : null,
+            'title'            => $input['title'],
+            'description'      => $input['description'],
+            'items'            => $input['items'],
+            'priority'         => $input['priority'],
+            'delivery_address' => $input['delivery_address'],
+            'notes'            => $input['notes'],
         ]);
 
         $logModel = new OrderStatusLog();
-        $logModel->create([
-            'order_id'   => $orderId,
-            'changed_by' => $user['id'],
-            'old_status' => null,
-            'new_status' => 'pending',
-            'note'       => 'Order placed by customer',
-        ]);
+        $logModel->logStatusChange(
+            $orderId,
+            $user['id'],
+            null,
+            'pending',
+            'Order placed by customer'
+        );
 
         unset($_SESSION['old_order']);
 
@@ -119,12 +92,145 @@ class CustomerController extends Controller
     {
         $this->requireRole('customer');
 
+        $order = $this->findCustomerOrder($id);
+        if ($order === null) {
+            return;
+        }
+
+        $logModel = new OrderStatusLog();
+        $timeline = $logModel->findByOrderId((int) $order['id']);
+
+        $this->view('customer/show', [
+            'title'    => 'Order ' . $order['order_number'],
+            'user'     => $this->user(),
+            'order'    => $order,
+            'timeline' => $timeline,
+            'flash'    => $this->getFlash(),
+        ]);
+    }
+
+    public function edit(string $id): void
+    {
+        $this->requireRole('customer');
+
+        $order = $this->findCustomerOrder($id);
+        if ($order === null) {
+            return;
+        }
+
+        if ($order['status'] !== 'pending') {
+            $this->setFlash('error', 'Only pending orders can be edited.');
+            $this->redirect('/customer/orders/' . $order['id']);
+        }
+
+        $old = $_SESSION['old_order'] ?? [
+            'title'            => $order['title'],
+            'description'      => $order['description'] ?? '',
+            'delivery_address' => $order['delivery_address'],
+            'priority'         => $order['priority'],
+            'notes'            => $order['notes'] ?? '',
+            'items'            => $order['items'],
+        ];
+
+        $this->view('customer/edit', [
+            'title'    => 'Edit Order',
+            'user'     => $this->user(),
+            'order'    => $order,
+            'flash'    => $this->getFlash(),
+            'old'      => $old,
+            'scripts'  => [
+                'https://code.jquery.com/jquery-3.7.1.min.js',
+                rtrim($this->config['app']['url'], '/') . '/js/customer-order.js',
+            ],
+        ]);
+
+        unset($_SESSION['old_order']);
+    }
+
+    public function update(string $id): void
+    {
+        $this->requireRole('customer');
+
+        $order = $this->findCustomerOrder($id);
+        if ($order === null) {
+            return;
+        }
+
+        if ($order['status'] !== 'pending') {
+            $this->setFlash('error', 'Only pending orders can be edited.');
+            $this->redirect('/customer/orders/' . $order['id']);
+        }
+
+        $input = $this->orderInputFromPost();
+        $_SESSION['old_order'] = $input;
+
+        if (!$this->validateOrderInput($input)) {
+            $this->redirect('/customer/orders/' . $order['id'] . '/edit');
+        }
+
+        $orderModel = new Order();
+        $mergedItems = $this->preserveShopperItemFields($order['items'], $input['items']);
+
+        $orderModel->update((int) $order['id'], [
+            'title'            => $input['title'],
+            'description'      => $input['description'],
+            'items'            => $mergedItems,
+            'priority'         => $input['priority'],
+            'delivery_address' => $input['delivery_address'],
+            'notes'            => $input['notes'],
+        ]);
+
+        unset($_SESSION['old_order']);
+
+        $this->setFlash('success', 'Order updated successfully.');
+        $this->redirect('/customer/orders/' . $order['id']);
+    }
+
+    public function cancel(string $id): void
+    {
+        $this->requireRole('customer');
+
+        $order = $this->findCustomerOrder($id);
+        if ($order === null) {
+            return;
+        }
+
+        if ($order['status'] !== 'pending') {
+            $this->setFlash('error', 'Only pending orders can be cancelled.');
+            $this->redirect('/customer/orders/' . $order['id']);
+        }
+
+        $user = $this->user();
+        $logModel = new OrderStatusLog();
+        $note = trim((string) ($_POST['note'] ?? ''));
+
+        if (!$logModel->logStatusChange(
+            (int) $order['id'],
+            $user['id'],
+            'pending',
+            'cancelled',
+            $note !== '' ? $note : 'Cancelled by customer'
+        )) {
+            $this->setFlash('error', 'Could not cancel the order. Please try again.');
+            $this->redirect('/customer/orders/' . $order['id']);
+        }
+
+        $this->setFlash('success', 'Order cancelled successfully.');
+        $this->redirect('/customer/orders/' . $order['id']);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function findCustomerOrder(string $id): ?array
+    {
         $user = $this->user();
         $orderId = (int) $id;
 
         if ($orderId <= 0) {
             $this->setFlash('error', 'Invalid order.');
             $this->redirect('/customer/orders');
+            return null;
         }
 
         $orderModel = new Order();
@@ -133,26 +239,85 @@ class CustomerController extends Controller
         if (!$order) {
             $this->setFlash('error', 'Order not found.');
             $this->redirect('/customer/orders');
+            return null;
         }
 
-        $logModel = new OrderStatusLog();
-        $timeline = $logModel->findByOrderId($orderId);
+        return $order;
+    }
 
-        $this->view('customer/show', [
-            'title'    => 'Order ' . $order['order_number'],
-            'user'     => $user,
-            'order'    => $order,
-            'timeline' => $timeline,
-            'flash'    => $this->getFlash(),
-        ]);
+    /**
+     * @return array{
+     *   title: string,
+     *   description: string|null,
+     *   delivery_address: string,
+     *   priority: string,
+     *   notes: string|null,
+     *   items: array<int, array<string, mixed>>
+     * }
+     */
+    private function orderInputFromPost(): array
+    {
+        $title           = trim((string) ($_POST['title'] ?? ''));
+        $description     = trim((string) ($_POST['description'] ?? ''));
+        $deliveryAddress = trim((string) ($_POST['delivery_address'] ?? ''));
+        $priority        = (string) ($_POST['priority'] ?? 'normal');
+        $notes           = trim((string) ($_POST['notes'] ?? ''));
+
+        return [
+            'title'            => $title,
+            'description'      => $description !== '' ? $description : null,
+            'delivery_address' => $deliveryAddress,
+            'priority'         => $priority,
+            'notes'            => $notes !== '' ? $notes : null,
+            'items'            => Order::normalizeItems(
+                $this->buildItemsFromPost(
+                    $_POST['item_name'] ?? [],
+                    $_POST['item_qty'] ?? [],
+                    $_POST['item_unit'] ?? [],
+                    $_POST['item_substitute'] ?? []
+                )
+            ),
+        ];
+    }
+
+    /**
+     * @param array{
+     *   title: string,
+     *   description: string|null,
+     *   delivery_address: string,
+     *   priority: string,
+     *   notes: string|null,
+     *   items: array<int, array<string, mixed>>
+     * } $input
+     */
+    private function validateOrderInput(array $input): bool
+    {
+        if ($input['title'] === '' || $input['delivery_address'] === '') {
+            $this->setFlash('error', 'Title and delivery address are required.');
+            return false;
+        }
+
+        if (!in_array($input['priority'], ['normal', 'urgent'], true)) {
+            $this->setFlash('error', 'Invalid priority selected.');
+            return false;
+        }
+
+        if ($input['items'] === []) {
+            $this->setFlash('error', 'Please add at least one item.');
+            return false;
+        }
+
+        return true;
     }
 
     /**
      * @param mixed $names
      * @param mixed $qtys
-     * @return array<int, array{name: string, qty: int}>
+     * @param mixed $units
+     * @param mixed $substitutes
+     * @return array<int, array<string, mixed>>
      */
-    private function buildItemsFromPost(mixed $names, mixed $qtys): array
+    private function buildItemsFromPost(mixed $names, mixed $qtys, mixed $units, mixed $substitutes): array
     {
         if (!is_array($names) || !is_array($qtys)) {
             return [];
@@ -163,14 +328,41 @@ class CustomerController extends Controller
         foreach ($names as $i => $name) {
             $name = trim((string) $name);
             $qty  = (int) ($qtys[$i] ?? 0);
+            $unit = trim((string) (is_array($units) ? ($units[$i] ?? 'pcs') : 'pcs'));
 
             if ($name === '' || $qty < 1) {
                 continue;
             }
 
-            $items[] = ['name' => $name, 'qty' => $qty];
+            $items[] = [
+                'name'          => $name,
+                'qty'           => $qty,
+                'unit'          => $unit !== '' ? $unit : 'pcs',
+                'substitute_ok' => is_array($substitutes) && (($substitutes[$i] ?? '0') === '1' || ($substitutes[$i] ?? false) === true),
+            ];
         }
 
         return $items;
+    }
+
+    /**
+     * Keep shopper progress when a customer edits a pending order.
+     *
+     * @param array<int, array<string, mixed>> $existing
+     * @param array<int, array<string, mixed>> $updated
+     * @return array<int, array<string, mixed>>
+     */
+    private function preserveShopperItemFields(array $existing, array $updated): array
+    {
+        foreach ($updated as $index => $item) {
+            if (!isset($existing[$index])) {
+                continue;
+            }
+
+            $updated[$index]['item_status']  = $existing[$index]['item_status'] ?? 'pending';
+            $updated[$index]['shopper_note'] = $existing[$index]['shopper_note'] ?? null;
+        }
+
+        return $updated;
     }
 }

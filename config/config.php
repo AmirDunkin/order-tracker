@@ -22,4 +22,13 @@ return [
         'views'  => dirname(__DIR__) . '/app/Views',
         'public' => dirname(__DIR__) . '/public',
     ],
+    'mail' => [
+        'enabled'       => filter_var(getenv('MAIL_ENABLED') ?: 'true', FILTER_VALIDATE_BOOLEAN),
+        'log_only'        => filter_var(
+            getenv('MAIL_LOG_ONLY') ?: (app_environment() === 'local' ? 'true' : 'false'),
+            FILTER_VALIDATE_BOOLEAN
+        ),
+        'from_address'  => getenv('MAIL_FROM_ADDRESS') ?: 'noreply@ordertrack.local',
+        'from_name'     => getenv('MAIL_FROM_NAME') ?: 'OrderTrack',
+    ],
 ];

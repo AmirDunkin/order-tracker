@@ -79,6 +79,7 @@ class ShopperController extends Controller
         $logModel = new OrderStatusLog();
         $timeline = $logModel->findByOrderId($orderId);
         $allowedNext = Order::allowedTransitions((string) $order['status']);
+        $itemsEditable = in_array($order['status'], ['confirmed', 'shopping', 'ready'], true);
 
         $this->view('shopper/show', [
             'title'        => 'Order ' . $order['order_number'],
@@ -86,11 +87,63 @@ class ShopperController extends Controller
             'order'        => $order,
             'timeline'     => $timeline,
             'allowedNext'  => $allowedNext,
+            'itemsEditable'=> $itemsEditable,
             'flash'        => $this->getFlash(),
-            'scripts'      => [
+            'scripts'      => array_filter([
                 rtrim($this->config['app']['url'], '/') . '/js/shopper-status.js',
                 rtrim($this->config['app']['url'], '/') . '/js/shopper-ai.js',
-            ],
+                $itemsEditable ? rtrim($this->config['app']['url'], '/') . '/js/shopper-items.js' : null,
+            ]),
+        ]);
+    }
+
+    public function updateItems(string $id): void
+    {
+        $this->requireRole('shopper');
+
+        $orderId = (int) $id;
+
+        if ($orderId <= 0) {
+            $this->json(['success' => false, 'message' => 'Invalid order.'], 400);
+        }
+
+        $orderModel = new Order();
+        $order = $orderModel->findById($orderId);
+
+        if (!$order) {
+            $this->json(['success' => false, 'message' => 'Order not found.'], 404);
+        }
+
+        if (!in_array($order['status'], ['confirmed', 'shopping', 'ready'], true)) {
+            $this->json(['success' => false, 'message' => 'Item notes cannot be updated for this order status.'], 422);
+        }
+
+        $input = $_POST !== [] ? $_POST : $this->jsonInput();
+        $statuses = $input['item_status'] ?? [];
+        $notes    = $input['shopper_note'] ?? [];
+
+        if (!is_array($statuses)) {
+            $this->json(['success' => false, 'message' => 'Invalid item data.'], 422);
+        }
+
+        $updates = [];
+        foreach ($statuses as $index => $status) {
+            $updates[(int) $index] = [
+                'item_status'  => (string) $status,
+                'shopper_note' => is_array($notes) ? (string) ($notes[$index] ?? '') : '',
+            ];
+        }
+
+        $merged = Order::mergeItemShopperUpdates($order['items'], $updates);
+
+        if (!$orderModel->update($orderId, ['items' => $merged])) {
+            $this->json(['success' => false, 'message' => 'Failed to save item updates.'], 500);
+        }
+
+        $this->json([
+            'success' => true,
+            'message' => 'Item updates saved.',
+            'items'   => $merged,
         ]);
     }
 

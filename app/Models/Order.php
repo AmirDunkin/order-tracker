@@ -9,6 +9,17 @@ use Core\Model;
 class Order extends Model
 {
     /** @var list<string> */
+    private const ITEM_STATUSES = ['pending', 'found', 'substituted', 'unavailable'];
+
+    /** @var array<string, array{label: string, badge: string}> */
+    private const ITEM_STATUS_META = [
+        'pending'     => ['label' => 'Pending',     'badge' => 'secondary'],
+        'found'       => ['label' => 'Found',       'badge' => 'success'],
+        'substituted' => ['label' => 'Substituted', 'badge' => 'warning'],
+        'unavailable' => ['label' => 'Unavailable', 'badge' => 'danger'],
+    ];
+
+    /** @var list<string> */
     private const STATUSES = ['pending', 'confirmed', 'shopping', 'ready', 'delivered', 'cancelled'];
 
     /** @var array<string, string> */
@@ -366,6 +377,87 @@ class Order extends Model
     public static function statusIcon(string $status): string
     {
         return self::STATUS_META[$status]['icon'] ?? 'bi-info-circle';
+    }
+
+    public static function itemStatusLabel(string $status): string
+    {
+        return self::ITEM_STATUS_META[$status]['label'] ?? ucfirst($status);
+    }
+
+    public static function itemStatusBadgeClass(string $status): string
+    {
+        return self::ITEM_STATUS_META[$status]['badge'] ?? 'secondary';
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function allItemStatuses(): array
+    {
+        return self::ITEM_STATUSES;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $existing
+     * @param array<int, array{item_status?: string, shopper_note?: string}> $updates
+     * @return array<int, array<string, mixed>>
+     */
+    public static function mergeItemShopperUpdates(array $existing, array $updates): array
+    {
+        foreach ($updates as $index => $update) {
+            if (!isset($existing[$index]) || !is_array($update)) {
+                continue;
+            }
+
+            $status = (string) ($update['item_status'] ?? 'pending');
+            if (!in_array($status, self::ITEM_STATUSES, true)) {
+                $status = 'pending';
+            }
+
+            $existing[$index]['item_status'] = $status;
+            $note = trim((string) ($update['shopper_note'] ?? ''));
+            $existing[$index]['shopper_note'] = $note !== '' ? $note : null;
+        }
+
+        return $existing;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $items
+     * @return array<int, array<string, mixed>>
+     */
+    public static function normalizeItems(array $items): array
+    {
+        $normalized = [];
+
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $name = trim((string) ($item['name'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+
+            $status = (string) ($item['item_status'] ?? 'pending');
+            if (!in_array($status, self::ITEM_STATUSES, true)) {
+                $status = 'pending';
+            }
+
+            $normalized[] = [
+                'name'          => $name,
+                'qty'           => max(1, (int) ($item['qty'] ?? 1)),
+                'unit'          => trim((string) ($item['unit'] ?? 'pcs')) ?: 'pcs',
+                'substitute_ok' => !empty($item['substitute_ok']),
+                'item_status'   => $status,
+                'shopper_note'  => isset($item['shopper_note']) && trim((string) $item['shopper_note']) !== ''
+                    ? trim((string) $item['shopper_note'])
+                    : null,
+            ];
+        }
+
+        return $normalized;
     }
 
     /**

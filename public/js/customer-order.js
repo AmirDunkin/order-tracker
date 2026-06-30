@@ -1,15 +1,18 @@
 $(function () {
     const $container = $('#items-container');
     const $template = $('#item-row-template');
+    let nextItemIndex = $container.find('.item-row').length;
 
-  function updateRemoveButtons() {
+    function updateRemoveButtons() {
         const $rows = $container.find('.item-row');
         $rows.find('.remove-item').prop('disabled', $rows.length <= 1);
     }
 
     $('#add-item-btn').on('click', function () {
-        const $row = $($template.html());
+        const html = $template.html().replace(/__INDEX__/g, String(nextItemIndex));
+        const $row = $(html);
         $container.append($row);
+        nextItemIndex += 1;
         $row.find('.item-name').focus();
         updateRemoveButtons();
     });
